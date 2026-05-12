@@ -90,7 +90,9 @@ ollama serve
 mv main.html index.html
 ```
 
-The backend serves `index.html` from the project root.
+The backend serves `proto.html` from the project root.
+
+You can always change the source code to what your preferences as well
 
 ---
 
