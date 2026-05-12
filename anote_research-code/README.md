@@ -258,4 +258,4 @@ MIT License — free to use, modify, and distribute. See `LICENSE` for details.
 
 ## Disclaimer
 
-piVoT is a research and educational tool. It is **not** a substitute for professional clinical judgment. Always have a licensed clinician review AI-generated notes before use in patient care.
+The current demo is a research and educational tool. It is **not** a substitute for professional clinical judgment. Always have a licensed clinician review AI-generated notes before use in patient care.
