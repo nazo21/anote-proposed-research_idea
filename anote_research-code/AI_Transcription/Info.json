@@ -1,0 +1,381 @@
+[
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Date/Time: 03/10/2026 1400 Patient alert and oriented x3. Reports increased shortness of breath with minimal exertion. Respirations labored at times. Lung sounds with bilateral crackles at bases. SpO2 90% on room air; placed on 2 L nasal cannula with improvement to 95%. +2 pitting edema noted to bilateral lower extremities. Patient states breathing is harder when walking.",
+"output":{
+"SOAP":{
+"subject":"Patient reports shortness of breath when walking.",
+"objective":"Labored respirations with bilateral crackles at lung bases. SpO2 improved from 90% RA to 95% on 2L NC. +2 edema BLE.",
+"assessment":"Shortness of breath likely related to fluid overload.",
+"plan":"Maintain oxygen therapy and notify provider."
+},
+"SBAR":{
+"situation":"Patient experiencing increased shortness of breath.",
+"background":"History of worsening fatigue and dyspnea.",
+"assessment":"Signs consistent with possible fluid overload.",
+"recommendation":"Provider evaluation for diuretics."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Date/Time: 03/10/2026 0800 Patient complains of chest tightness since last night. Skin pale and diaphoretic. SpO2 improved from 94% to 98% on oxygen. BP 168/102 HR 110.",
+"output":{
+"SOAP":{
+"subject":"Patient reports chest tightness.",
+"objective":"Pale and diaphoretic skin. Elevated BP and HR.",
+"assessment":"Possible cardiac event.",
+"plan":"Obtain ECG and cardiac labs."
+},
+"SBAR":{
+"situation":"Patient with worsening chest tightness.",
+"background":"Symptoms began overnight.",
+"assessment":"Possible acute coronary syndrome.",
+"recommendation":"Immediate cardiac evaluation."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Date/Time: 03/10/2026 1600 Patient confused to date and reports feeling out of it. BP 88/54 HR 118 Temp 101.2F. Decreased urine output noted.",
+"output":{
+"SOAP":{
+"subject":"Patient reports feeling out of it.",
+"objective":"Hypotension, fever, tachycardia and decreased urine output.",
+"assessment":"Possible infection with hypotension.",
+"plan":"Administer IV fluids and obtain cultures."
+},
+"SBAR":{
+"situation":"Patient with new confusion and hypotension.",
+"background":"Previously oriented earlier in shift.",
+"assessment":"Concern for infection or sepsis.",
+"recommendation":"Immediate provider evaluation."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Date/Time: 03/11/2026 0600 Patient reports right hip pain after falling from bed. Leg externally rotated and shortened.",
+"output":{
+"SOAP":{
+"subject":"Patient reports severe hip pain.",
+"objective":"Right leg externally rotated and shortened.",
+"assessment":"Possible hip fracture.",
+"plan":"Obtain stat hip x-ray."
+},
+"SBAR":{
+"situation":"Patient fell while getting out of bed.",
+"background":"Fall occurred early morning.",
+"assessment":"Possible fracture.",
+"recommendation":"Orthopedic evaluation."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Post-operative day 1 appendectomy patient reports incision soreness. Vitals stable and bowel sounds present.",
+"output":{
+"SOAP":{
+"subject":"Patient reports mild incision pain.",
+"objective":"Stable vitals and normal bowel sounds.",
+"assessment":"Normal post-operative recovery.",
+"plan":"Continue pain management."
+},
+"SBAR":{
+"situation":"Post-op appendectomy recovery.",
+"background":"Surgery completed yesterday.",
+"assessment":"Recovery progressing normally.",
+"recommendation":"Continue monitoring."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Patient admitted with blood glucose 487 after missing insulin doses for four days. Complains of thirst and frequent urination.",
+"output":{
+"SOAP":{
+"subject":"Patient reports excessive thirst and urination.",
+"objective":"Blood glucose 487 with dry mucous membranes.",
+"assessment":"Severe hyperglycemia.",
+"plan":"Start insulin protocol."
+},
+"SBAR":{
+"situation":"Patient admitted with uncontrolled glucose.",
+"background":"Missed insulin for four days.",
+"assessment":"Hyperglycemia likely due to non-adherence.",
+"recommendation":"Initiate insulin therapy."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Patient developed facial droop and slurred speech at 1320. Left arm weakness noted.",
+"output":{
+"SOAP":{
+"subject":"Patient reports facial numbness.",
+"objective":"Facial droop with left arm weakness.",
+"assessment":"Possible acute stroke.",
+"plan":"Activate stroke protocol."
+},
+"SBAR":{
+"situation":"Patient with new neurological deficits.",
+"background":"Symptoms started suddenly.",
+"assessment":"Suspected stroke.",
+"recommendation":"Immediate stroke evaluation."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Patient reports nausea and vomiting with abdominal distention. No bowel movement for four days.",
+"output":{
+"SOAP":{
+"subject":"Patient reports nausea and vomiting.",
+"objective":"Abdomen distended with hypoactive bowel sounds.",
+"assessment":"Possible bowel obstruction.",
+"plan":"Maintain NPO and monitor."
+},
+"SBAR":{
+"situation":"Patient experiencing abdominal distention.",
+"background":"Constipation for four days.",
+"assessment":"Possible obstruction.",
+"recommendation":"Abdominal imaging."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Patient complains of severe headache and photophobia. Neck stiffness present.",
+"output":{
+"SOAP":{
+"subject":"Patient reports severe headache.",
+"objective":"Neck stiffness and photophobia observed.",
+"assessment":"Possible meningitis.",
+"plan":"Initiate diagnostic testing."
+},
+"SBAR":{
+"situation":"Patient with severe headache.",
+"background":"Symptoms began suddenly.",
+"assessment":"Possible meningitis.",
+"recommendation":"Immediate provider evaluation."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Patient reports dizziness when standing. BP 92/60 HR 108.",
+"output":{
+"SOAP":{
+"subject":"Patient reports dizziness on standing.",
+"objective":"Low BP with tachycardia.",
+"assessment":"Possible orthostatic hypotension.",
+"plan":"Encourage fluids and monitor."
+},
+"SBAR":{
+"situation":"Patient experiencing dizziness.",
+"background":"Occurs when standing.",
+"assessment":"Orthostatic hypotension suspected.",
+"recommendation":"Assess hydration status."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Patient complains of burning pain during urination and frequent urge to void.",
+"output":{
+"SOAP":{
+"subject":"Patient reports painful urination.",
+"objective":"Frequent urination observed.",
+"assessment":"Possible urinary tract infection.",
+"plan":"Obtain urine sample."
+},
+"SBAR":{
+"situation":"Patient with dysuria.",
+"background":"Symptoms began today.",
+"assessment":"UTI suspected.",
+"recommendation":"Start antibiotics if confirmed."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Patient reports cough with green sputum and fever.",
+"output":{
+"SOAP":{
+"subject":"Patient reports productive cough.",
+"objective":"Fever and green sputum present.",
+"assessment":"Possible respiratory infection.",
+"plan":"Obtain chest x-ray."
+},
+"SBAR":{
+"situation":"Patient coughing with fever.",
+"background":"Symptoms worsening over several days.",
+"assessment":"Possible pneumonia.",
+"recommendation":"Start diagnostic workup."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Patient complains of lower back pain after lifting heavy object.",
+"output":{
+"SOAP":{
+"subject":"Patient reports back pain.",
+"objective":"Tenderness in lumbar area.",
+"assessment":"Muscle strain.",
+"plan":"Provide pain management."
+},
+"SBAR":{
+"situation":"Patient experiencing back pain.",
+"background":"Pain began after lifting.",
+"assessment":"Muscle strain suspected.",
+"recommendation":"Rest and analgesics."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Patient reports anxiety and rapid breathing during stressful event.",
+"output":{
+"SOAP":{
+"subject":"Patient reports anxiety.",
+"objective":"Rapid breathing noted.",
+"assessment":"Anxiety attack.",
+"plan":"Provide reassurance and breathing exercises."
+},
+"SBAR":{
+"situation":"Patient experiencing anxiety.",
+"background":"Stressful event occurred.",
+"assessment":"Acute anxiety response.",
+"recommendation":"Calming techniques."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Patient reports swollen ankle after twisting foot.",
+"output":{
+"SOAP":{
+"subject":"Patient reports ankle pain.",
+"objective":"Swelling around ankle joint.",
+"assessment":"Possible ankle sprain.",
+"plan":"Apply ice and immobilize."
+},
+"SBAR":{
+"situation":"Patient with ankle injury.",
+"background":"Twisted foot while walking.",
+"assessment":"Sprain suspected.",
+"recommendation":"X-ray if swelling worsens."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Patient complains of fatigue and pale appearance.",
+"output":{
+"SOAP":{
+"subject":"Patient reports fatigue.",
+"objective":"Pale skin noted.",
+"assessment":"Possible anemia.",
+"plan":"Order blood tests."
+},
+"SBAR":{
+"situation":"Patient presenting with fatigue.",
+"background":"Symptoms ongoing for weeks.",
+"assessment":"Possible anemia.",
+"recommendation":"Evaluate hemoglobin levels."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Patient reports severe abdominal pain after eating.",
+"output":{
+"SOAP":{
+"subject":"Patient reports abdominal pain.",
+"objective":"Guarding noted on exam.",
+"assessment":"Possible gallbladder issue.",
+"plan":"Order abdominal ultrasound."
+},
+"SBAR":{
+"situation":"Patient with severe abdominal pain.",
+"background":"Pain occurs after meals.",
+"assessment":"Possible biliary condition.",
+"recommendation":"Diagnostic imaging."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Patient reports itching rash on arms and chest.",
+"output":{
+"SOAP":{
+"subject":"Patient reports itching rash.",
+"objective":"Red rash visible on arms and chest.",
+"assessment":"Possible allergic reaction.",
+"plan":"Administer antihistamine."
+},
+"SBAR":{
+"situation":"Patient with rash.",
+"background":"Started after new medication.",
+"assessment":"Possible drug reaction.",
+"recommendation":"Review medications."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Patient complains of blurred vision and headache.",
+"output":{
+"SOAP":{
+"subject":"Patient reports blurred vision.",
+"objective":"Elevated blood pressure noted.",
+"assessment":"Possible hypertensive episode.",
+"plan":"Monitor BP and notify provider."
+},
+"SBAR":{
+"situation":"Patient experiencing vision changes.",
+"background":"History of hypertension.",
+"assessment":"Possible hypertensive urgency.",
+"recommendation":"Immediate BP management."
+}
+}
+},
+
+{
+"instruction":"Extract structured medical SOAP and SBAR note data as JSON",
+"input":"Patient reports difficulty sleeping and persistent fatigue.",
+"output":{
+"SOAP":{
+"subject":"Patient reports insomnia and fatigue.",
+"objective":"No acute distress noted.",
+"assessment":"Sleep disturbance.",
+"plan":"Discuss sleep hygiene."
+},
+"SBAR":{
+"situation":"Patient with sleep difficulty.",
+"background":"Symptoms ongoing for weeks.",
+"assessment":"Possible insomnia.",
+"recommendation":"Evaluate sleep habits."
+}
+}
+}
+]

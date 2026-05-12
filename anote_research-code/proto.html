@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>MedScript — AI Clinical Note Extractor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0b0f1a;
+      --panel:     #111827;
+      --panel2:    #0e1521;
+      --border:    #1e2d45;
+      --border2:   #243451;
+      --accent:    #38bdf8;
+      --accent2:   #0ea5e9;
+      --green:     #34d399;
+      --amber:     #fbbf24;
+      --red:       #f87171;
+      --text:      #e2e8f0;
+      --muted:     #4a6580;
+      --muted2:    #64748b;
+      --mono:      'Space Mono', monospace;
+      --sans:      'Sora', sans-serif;
+      --r:         10px;
+      --glow:      0 0 20px rgba(56,189,248,0.15);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── Scanline bg ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(56,189,248,0.012) 2px,
+          rgba(56,189,248,0.012) 4px
+        );
+    }
+
+    /* ── Radial glow ── */
+    body::after {
+      content: '';
+      position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 500px;
+      background: radial-gradient(ellipse, rgba(56,189,248,0.06) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .app {
+      position: relative; z-index: 1;
+      max-width: 720px; margin: 0 auto;
+      padding: 0 16px 80px;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 22px 0 18px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .wordmark {
+      display: flex; align-items: baseline; gap: 6px;
+    }
+    .wordmark-name {
+      font-family: var(--mono); font-size: 1.1rem; font-weight: 700;
+      color: var(--accent); letter-spacing: -0.02em;
+    }
+    .wordmark-tag {
+      font-family: var(--sans); font-size: 0.58rem; font-weight: 600;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--muted2); background: rgba(56,189,248,0.08);
+      border: 1px solid rgba(56,189,248,0.15);
+      padding: 2px 7px; border-radius: 4px;
+    }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 0.62rem;
+      color: var(--muted2); padding: 5px 11px;
+      border: 1px solid var(--border); border-radius: 20px;
+      background: var(--panel2);
+      transition: border-color 0.3s;
+    }
+    .status-pill.online { border-color: rgba(52,211,153,0.35); color: var(--green); }
+    .status-pill.error  { border-color: rgba(248,113,113,0.35); color: var(--red); }
+    .pip {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--muted);
+      flex-shrink: 0; transition: background 0.3s;
+    }
+    .status-pill.online .pip { background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,0.6); animation: pulse 2s infinite; }
+    .status-pill.error  .pip { background: var(--red); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ── TOAST ── */
+    .toast {
+      display: none; align-items: center; gap: 9px;
+      padding: 10px 14px; border-radius: var(--r);
+      font-size: 0.75rem; font-family: var(--mono);
+      margin-bottom: 14px; animation: toastin .2s ease;
+    }
+    @keyframes toastin { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:none} }
+    .toast.show { display: flex; }
+    .toast.error   { background: rgba(248,113,113,0.07); border: 1px solid rgba(248,113,113,0.3); color: var(--red); }
+    .toast.success { background: rgba(52,211,153,0.07); border: 1px solid rgba(52,211,153,0.3); color: var(--green); }
+    .toast.info    { background: rgba(56,189,248,0.07); border: 1px solid rgba(56,189,248,0.3); color: var(--accent); }
+
+    /* ── PANEL ── */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+    .panel::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(56,189,248,0.3), transparent);
+    }
+    .panel-label {
+      font-family: var(--mono); font-size: 0.58rem; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--muted2); margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .panel-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* ── ROOM + FILE row ── */
+    .input-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;
+    }
+    @media(max-width:500px) { .input-row { grid-template-columns: 1fr; } }
+
+    .field-group { display: flex; flex-direction: column; gap: 5px; }
+    .field-label {
+      font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--muted);
+    }
+
+    .room-input {
+      background: var(--panel2); border: 1px solid var(--border2);
+      border-radius: 8px; padding: 9px 12px;
+      color: var(--text); font-family: var(--mono); font-size: 0.82rem;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+      letter-spacing: 0.06em; width: 100%;
+    }
+    .room-input:focus {
+      border-color: var(--accent2);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.1);
+    }
+    .room-input::placeholder { color: var(--muted); }
+    .room-input.required { border-color: var(--red); }
+
+    /* ── Drop zone ── */
+    .drop-zone {
+      border: 1.5px dashed var(--border2); border-radius: 8px;
+      padding: 14px 12px; text-align: center; cursor: pointer;
+      transition: all 0.2s; position: relative;
+      background: var(--panel2);
+    }
+    .drop-zone:hover, .drop-zone.over {
+      border-color: var(--accent2);
+      background: rgba(56,189,248,0.04);
+      box-shadow: var(--glow);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .drop-label { font-size: 0.72rem; color: var(--muted2); }
+    .drop-hint { font-size: 0.58rem; color: var(--muted); margin-top: 2px; }
+    .file-chip {
+      display: none; align-items: center; gap: 7px;
+      margin-top: 7px; padding: 6px 10px; border-radius: 6px;
+      background: rgba(56,189,248,0.07); border: 1px solid rgba(56,189,248,0.2);
+      font-family: var(--mono); font-size: 0.7rem; color: var(--accent);
+    }
+    .file-chip.show { display: flex; }
+    .file-chip-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chip-x { background: none; border: none; color: var(--muted2); cursor: pointer; font-size: 0.8rem; padding: 0 2px; line-height: 1; }
+    .chip-x:hover { color: var(--red); }
+
+    /* ── Controls ── */
+    .controls { display: flex; gap: 8px; margin-top: 10px; }
+
+    .btn {
+      font-family: var(--mono); font-size: 0.74rem;
+      border-radius: 8px; padding: 10px 16px; cursor: pointer;
+      border: none; transition: all 0.18s; letter-spacing: 0.04em;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+    .btn-main {
+      background: var(--accent); color: #000; font-weight: 700; flex: 1;
+      box-shadow: 0 4px 15px rgba(56,189,248,0.2);
+    }
+    .btn-main:hover:not(:disabled) {
+      background: #7dd3fc;
+      box-shadow: 0 4px 22px rgba(56,189,248,0.35);
+    }
+
+    .btn-ghost {
+      background: transparent; color: var(--muted2);
+      border: 1px solid var(--border2);
+    }
+    .btn-ghost:hover { border-color: var(--accent2); color: var(--accent); }
+    .btn-ghost.rec { display: flex; align-items: center; gap: 6px; }
+    .btn-ghost.rec.active { border-color: var(--red); color: var(--red); animation: recpulse 1.2s infinite; }
+    @keyframes recpulse { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 10px rgba(248,113,113,0.25)} }
+    .rdot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+    /* ── Progress ── */
+    .progress {
+      display: none; margin-top: 10px;
+      height: 2px; background: var(--border); border-radius: 1px; overflow: hidden;
+    }
+    .progress.show { display: block; }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      animation: sweep 1.4s ease-in-out infinite;
+    }
+    @keyframes sweep { 0%{transform:translateX(-100%);width:60%} 100%{transform:translateX(220%);width:60%} }
+
+    /* ── Transcript ── */
+    .transcript-toolbar {
+      display: none; justify-content: space-between; align-items: center;
+      margin-bottom: 8px;
+    }
+    .transcript-toolbar.show { display: flex; }
+    .toolbar-hint {
+      font-family: var(--mono); font-size: 0.58rem; color: var(--muted);
+      display: flex; align-items: center; gap: 5px;
+    }
+    .live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+    .toolbar-actions { display: flex; gap: 5px; }
+    .mini-btn {
+      font-family: var(--mono); font-size: 0.58rem;
+      padding: 3px 8px; border-radius: 5px; cursor: pointer;
+      background: none; border: 1px solid var(--border2); color: var(--muted2);
+      transition: all 0.15s;
+    }
+    .mini-btn:hover { border-color: var(--accent2); color: var(--accent); }
+
+    .transcript-box {
+      background: var(--panel2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 14px; min-height: 80px;
+      font-family: var(--mono); font-size: 0.78rem; line-height: 1.8;
+      color: var(--text); white-space: pre-wrap; outline: none;
+      transition: border-color 0.2s;
+    }
+    .transcript-box[contenteditable="true"]:focus { border-color: var(--accent2); }
+    .transcript-box.empty::before {
+      content: 'Transcript appears here after processing…';
+      color: var(--muted); font-style: italic; pointer-events: none;
+    }
+
+    /* ── Extracted notes ── */
+    .notes-grid { display: grid; gap: 5px; }
+
+    .section-head {
+      font-family: var(--mono); font-size: 0.58rem; font-weight: 700;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--accent); padding: 10px 0 5px;
+      border-bottom: 1px solid rgba(56,189,248,0.2);
+      margin-top: 6px; display: flex; align-items: center; gap: 8px;
+    }
+    .section-head-icon { opacity: 0.6; }
+
+    .note-row {
+      display: grid; grid-template-columns: 100px 1fr 26px;
+      gap: 4px 10px; align-items: start;
+      padding: 9px 10px; background: var(--panel2);
+      border: 1px solid var(--border); border-radius: 8px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .note-row.flash { border-color: rgba(56,189,248,0.4); background: rgba(56,189,248,0.04); }
+    .note-row.editing { border-color: var(--accent2); background: rgba(56,189,248,0.03); }
+    .note-key {
+      font-family: var(--mono); font-size: 0.57rem;
+      color: var(--muted2); text-transform: uppercase; letter-spacing: 0.08em;
+      padding-top: 2px;
+    }
+    .note-val {
+      font-family: var(--sans); font-size: 0.78rem; color: var(--text);
+      line-height: 1.65; word-break: break-word; outline: none;
+      border-radius: 3px; padding: 0 2px; min-height: 1.2rem;
+      transition: background 0.15s;
+    }
+    .note-val[contenteditable="true"]:focus { background: rgba(56,189,248,0.06); }
+    .note-val.empty { color: var(--muted); font-style: italic; font-size: 0.72rem; }
+    .note-val.action-req { color: var(--amber); font-style: italic; font-size: 0.72rem; }
+    .edit-btn {
+      background: none; border: none; color: var(--muted);
+      font-size: 0.62rem; cursor: pointer; padding: 2px 3px;
+      border-radius: 4px; transition: color 0.15s; align-self: start;
+    }
+    .edit-btn:hover, .edit-btn.on { color: var(--accent); }
+
+    /* ── Vitals strip ── */
+    .vitals-strip {
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      gap: 6px; margin: 8px 0;
+    }
+    @media(max-width:540px) { .vitals-strip { grid-template-columns: repeat(3, 1fr); } }
+    @media(max-width:360px) { .vitals-strip { grid-template-columns: repeat(2, 1fr); } }
+
+    .vital-card {
+      background: var(--panel2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 8px; text-align: center;
+      transition: border-color 0.2s;
+      animation: vitalpop 0.3s ease backwards;
+    }
+    @keyframes vitalpop { from{opacity:0;transform:scale(0.94)} to{opacity:1;transform:none} }
+    .vital-card.has-value { border-color: rgba(56,189,248,0.25); }
+    .vital-label {
+      font-family: var(--mono); font-size: 0.5rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted2); margin-bottom: 5px;
+    }
+    .vital-value {
+      font-family: var(--mono); font-size: 0.82rem; font-weight: 700;
+      color: var(--accent); line-height: 1.1;
+    }
+    .vital-value.missing { color: var(--amber); font-size: 0.6rem; }
+
+    /* ── Submit ── */
+    .submit-bar {
+      display: none; align-items: center; justify-content: space-between;
+      gap: 12px; border-top: 1px solid var(--border); padding-top: 14px; margin-top: 4px;
+    }
+    .submit-bar.show { display: flex; }
+    .submit-info {
+      font-family: var(--mono); font-size: 0.65rem; color: var(--muted2);
+    }
+    .submit-info strong { color: var(--accent); }
+    .btn-submit {
+      font-family: var(--mono); font-size: 0.74rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--accent2), #0284c7);
+      color: #fff; border: none; border-radius: 8px;
+      padding: 10px 20px; cursor: pointer; letter-spacing: 0.04em;
+      box-shadow: 0 4px 15px rgba(14,165,233,0.3);
+      transition: all 0.18s; white-space: nowrap;
+    }
+    .btn-submit:hover:not(:disabled) { box-shadow: 0 4px 22px rgba(14,165,233,0.5); transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+    /* ── Raw JSON toggle ── */
+    .json-toggle-btn {
+      display: none; font-family: var(--mono); font-size: 0.6rem;
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      margin-top: 8px; padding: 0; text-decoration: underline;
+    }
+    .json-toggle-btn:hover { color: var(--muted2); }
+    .raw-json {
+      display: none; margin-top: 8px; padding: 12px;
+      background: var(--panel2); border: 1px solid var(--border);
+      border-radius: 8px; font-family: var(--mono); font-size: 0.65rem;
+      color: rgba(226,232,240,0.35); line-height: 1.7; overflow-x: auto;
+      white-space: pre;
+    }
+    .raw-json.show { display: block; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
+      text-align: center; padding: 20px 0;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    /* ── Responsive ── */
+    @media(max-width:480px) {
+      .app { padding: 0 12px 80px; }
+      header { padding: 14px 0; margin-bottom: 14px; }
+      .wordmark-name { font-size: 0.95rem; }
+      .controls { flex-direction: column; }
+      .note-row { grid-template-columns: 80px 1fr 24px; }
+      .submit-bar { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="wordmark">
+      <span class="wordmark-name">MedScript</span>
+      <span class="wordmark-tag">AI Extractor</span>
+    </div>
+    <div class="status-pill" id="statusPill">
+      <div class="pip" id="pip"></div>
+      <span id="statusText">Connecting…</span>
+    </div>
+  </header>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- PANEL 1 — Input -->
+  <div class="panel">
+    <p class="panel-label">Input</p>
+
+    <div class="input-row">
+      <!-- Room -->
+      <div class="field-group">
+        <span class="field-label">Room / ID</span>
+        <input class="room-input" id="roomInput" type="text"
+               placeholder="e.g. 4B, ICU-2" autocomplete="off" spellcheck="false"/>
+      </div>
+      <!-- File -->
+      <div class="field-group">
+        <span class="field-label">Audio File</span>
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" accept=".wav,.mp3,.m4a,.ogg,.flac,.webm"/>
+          <div class="drop-label">Drop or tap to browse</div>
+          <div class="drop-hint">WAV · MP3 · M4A · OGG · FLAC</div>
+        </div>
+        <div class="file-chip" id="fileChip">
+          <span>📎</span>
+          <span class="file-chip-name" id="fileName"></span>
+          <button class="chip-x" onclick="clearFile()">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-ghost rec" id="recordBtn" onclick="toggleRecord()">
+        <div class="rdot"></div>
+        <span id="recLabel">Record</span>
+      </button>
+      <button class="btn btn-main" id="transcribeBtn" onclick="runTranscribe()" disabled>
+        Process →
+      </button>
+    </div>
+
+    <div class="progress" id="progress"><div class="progress-fill"></div></div>
+  </div>
+
+  <!-- PANEL 2 — Transcript -->
+  <div class="panel">
+    <p class="panel-label">Transcript</p>
+    <div class="transcript-toolbar" id="toolbar">
+      <div class="toolbar-hint"><div class="live-dot"></div>Editable — changes re-extract on demand</div>
+      <div class="toolbar-actions">
+        <button class="mini-btn" onclick="copyTx()">Copy</button>
+        <button class="mini-btn" onclick="resetTx()">Reset</button>
+        <button class="mini-btn" onclick="resend()">Re-extract ↑</button>
+      </div>
+    </div>
+    <div class="transcript-box empty" id="txBox" contenteditable="false" spellcheck="true"></div>
+  </div>
+
+  <!-- PANEL 3 — Structured Notes -->
+  <div class="panel">
+    <p class="panel-label">Extracted Notes</p>
+
+    <div class="notes-grid" id="notesGrid">
+      <div class="empty-state">Run a transcription to see structured output.</div>
+    </div>
+
+    <button class="json-toggle-btn" id="jsonToggleBtn" onclick="toggleJson()">Show raw JSON</button>
+    <pre class="raw-json" id="rawJson"></pre>
+
+    <div class="submit-bar" id="submitBar">
+      <div class="submit-info">Filing for room <strong id="submitRoom">—</strong></div>
+      <button class="btn-submit" id="submitBtn" onclick="submitNotes()">Submit Notes →</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const API = 'http://localhost:8000';
+  let recorder, chunks = [], isRecording = false;
+  let selectedFile = null, origTx = '', didTranscribe = false;
+
+  // ── HEALTH CHECK ──────────────────────────────────────────────────────────
+  async function checkHealth() {
+    const pill = document.getElementById('statusPill');
+    const pip  = document.getElementById('pip');
+    const txt  = document.getElementById('statusText');
+    try {
+      const r = await fetch(`${API}/`, { signal: AbortSignal.timeout(4000) });
+      if (r.ok) {
+        pill.className = 'status-pill online';
+        txt.textContent = 'API online';
+      } else throw new Error();
+    } catch {
+      pill.className = 'status-pill error';
+      txt.textContent = 'API offline';
+    }
+  }
+  checkHealth();
+  setInterval(checkHealth, 30000);
+
+  // ── TOAST ─────────────────────────────────────────────────────────────────
+  function toast(msg, type = 'info', ms = 4000) {
+    const el = document.getElementById('toast');
+    el.className = `toast ${type} show`;
+    el.textContent = (type === 'error' ? '⚠ ' : type === 'success' ? '✓ ' : '› ') + msg;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.className = 'toast', ms);
+  }
+
+  // ── ROOM / GATE ───────────────────────────────────────────────────────────
+  function getRoom() { return document.getElementById('roomInput').value.trim(); }
+  function gate() {
+    document.getElementById('transcribeBtn').disabled = !(selectedFile);
+  }
+  document.getElementById('roomInput').addEventListener('input', () => {
+    document.getElementById('roomInput').classList.remove('required');
+  });
+
+  // ── FILE ──────────────────────────────────────────────────────────────────
+  const fileInput = document.getElementById('fileInput');
+  const dropZone  = document.getElementById('dropZone');
+
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('over');
+    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+
+  function setFile(f) {
+    selectedFile = f;
+    document.getElementById('fileName').textContent = f.name;
+    document.getElementById('fileChip').classList.add('show');
+    gate();
+  }
+  function clearFile() {
+    selectedFile = null; fileInput.value = '';
+    document.getElementById('fileChip').classList.remove('show');
+    gate();
+  }
+
+  // ── RECORD ────────────────────────────────────────────────────────────────
+  async function toggleRecord() {
+    const btn = document.getElementById('recordBtn');
+    const lbl = document.getElementById('recLabel');
+    if (!isRecording) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recorder = new MediaRecorder(stream); chunks = [];
+        recorder.ondataavailable = e => chunks.push(e.data);
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'audio/wav' });
+          setFile(new File([blob], 'recording.wav', { type: 'audio/wav' }));
+          stream.getTracks().forEach(t => t.stop());
+        };
+        recorder.start();
+        isRecording = true;
+        btn.classList.add('active');
+        lbl.textContent = 'Stop';
+      } catch { toast('Microphone access denied.', 'error'); }
+    } else {
+      recorder.stop(); isRecording = false;
+      btn.classList.remove('active');
+      lbl.textContent = 'Record';
+    }
+  }
+
+  // ── TRANSCRIBE ────────────────────────────────────────────────────────────
+  async function runTranscribe() {
+    if (!selectedFile) return;
+    if (!getRoom()) {
+      document.getElementById('roomInput').classList.add('required');
+      document.getElementById('roomInput').focus();
+      toast('Enter a room or patient ID first.', 'error');
+      return;
+    }
+    setLoading(true);
+    const form = new FormData();
+    form.append('file', selectedFile);
+    form.append('room', getRoom());
+    try {
+      const res  = await fetch(`${API}/transcribe-and-extract`, { method: 'POST', body: form });
+      if (!res.ok) throw new Error(`Server ${res.status}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      renderTranscript(data.transcript);
+      renderNotes(data.extracted);
+      toast('Transcription complete', 'success');
+    } catch (e) { toast(e.message, 'error'); }
+    finally { setLoading(false); }
+  }
+
+  async function resend() {
+    const text = document.getElementById('txBox').textContent.trim();
+    if (!text) return;
+    setLoading(true);
+    try {
+      const form = new FormData();
+      form.append('transcript', text);
+      form.append('room', getRoom());
+      const res  = await fetch(`${API}/transcribe-and-extract`, { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Failed');
+      renderNotes(data.extracted);
+      toast('Re-extraction complete', 'success');
+    } catch (e) { toast(e.message, 'error'); }
+    finally { setLoading(false); }
+  }
+
+  function setLoading(on) {
+    const btn = document.getElementById('transcribeBtn');
+    const prg = document.getElementById('progress');
+    btn.disabled = on;
+    btn.textContent = on ? 'Processing…' : 'Process →';
+    prg.classList.toggle('show', on);
+  }
+
+  // ── TRANSCRIPT RENDER ─────────────────────────────────────────────────────
+  function renderTranscript(text) {
+    origTx = text;
+    const box = document.getElementById('txBox');
+    box.classList.remove('empty');
+    box.textContent = text;
+    box.contentEditable = 'true';
+    document.getElementById('toolbar').classList.add('show');
+  }
+  function copyTx() {
+    navigator.clipboard.writeText(document.getElementById('txBox').textContent);
+    toast('Copied to clipboard', 'success');
+  }
+  function resetTx() {
+    document.getElementById('txBox').textContent = origTx;
+    toast('Transcript reset', 'info');
+  }
+
+  // ── NOTES RENDER ──────────────────────────────────────────────────────────
+  const SECTIONS = [
+    {
+      key: 'SOAP', icon: '◈',
+      fields: [
+        { k: 'subject',    l: 'Subject'    },
+        { k: 'objective',  l: 'Objective'  },
+        { k: 'assessment', l: 'Assessment' },
+        { k: 'plan',       l: 'Plan'       },
+      ]
+    },
+    {
+      key: 'SBAR', icon: '◉',
+      fields: [
+        { k: 'situation',      l: 'Situation'      },
+        { k: 'background',     l: 'Background'     },
+        { k: 'assessment',     l: 'Assessment'     },
+        { k: 'recommendation', l: 'Recommendation' },
+      ]
+    },
+    {
+      key: 'Patient', icon: '◇',
+      fields: [
+        { k: 'Room #',                     l: 'Room'       },
+        { k: 'Medical_Background',         l: 'Background' },
+        { k: 'Reason for Visit',           l: 'Reason'     },
+        { k: 'Current Status of Patient',  l: 'Status'     },
+        { k: 'Special Notes for Caregiver',l: 'Notes'      },
+      ]
+    },
+    {
+      key: 'Action', icon: '◆',
+      fields: [
+        { k: 'Current Goal of Patient',      l: 'Goal'      },
+        { k: 'Last Activity Caregiver took', l: 'Last Act.' },
+        { k: 'Last seen by Nurse',           l: 'Nurse'     },
+        { k: 'Last seen by Physician',       l: 'Physician' },
+      ]
+    }
+  ];
+
+  const VITALS_KEYS = [
+    { k: 'Heart Rate',     l: 'HR', unit: 'bpm' },
+    { k: 'Oxygen Level',   l: 'SpO₂', unit: '%'  },
+    { k: 'Blood Pressure', l: 'BP', unit: ''    },
+    { k: 'Temperature',    l: 'Temp', unit: '°C'  },
+    { k: 'Respirations',   l: 'RR', unit: '/min' },
+  ];
+
+  function renderNotes(extracted) {
+    if (!extracted) return;
+    if (typeof extracted === 'string') {
+      try { extracted = JSON.parse(extracted); } catch { return; }
+    }
+
+    const grid = document.getElementById('notesGrid');
+    grid.innerHTML = '';
+
+    // ── Vitals strip ──────────────────────────────────────────────────────
+    const vitals = extracted['VITALS'] || {};
+    const hasVitals = VITALS_KEYS.some(v => vitals[v.k]);
+    if (hasVitals || extracted['VITALS']) {
+      const sh = document.createElement('div');
+      sh.className = 'section-head';
+      sh.innerHTML = '<span class="section-head-icon">◈</span> VITALS';
+      grid.appendChild(sh);
+
+      const strip = document.createElement('div');
+      strip.className = 'vitals-strip';
+      VITALS_KEYS.forEach(({ k, l, unit }, i) => {
+        const val = vitals[k];
+        const hasVal = val && val !== 'Action Required';
+        const card = document.createElement('div');
+        card.className = hasVal ? 'vital-card has-value' : 'vital-card';
+        card.style.animationDelay = `${i * 60}ms`;
+        card.innerHTML = `
+          <div class="vital-label">${l}</div>
+          <div class="vital-value ${hasVal ? '' : 'missing'}">${hasVal ? val + (unit && !val.includes(unit) ? '<span style="font-size:0.55rem;opacity:0.6;"> '+unit+'</span>' : '') : 'ACT. REQ.'}</div>
+        `;
+        strip.appendChild(card);
+      });
+      grid.appendChild(strip);
+    }
+
+    // ── SOAP, SBAR, Patient, Action ───────────────────────────────────────
+    SECTIONS.forEach(({ key, icon, fields }) => {
+      const sec = extracted[key];
+      if (!sec || typeof sec !== 'object') return;
+
+      const sh = document.createElement('div');
+      sh.className = 'section-head';
+      sh.innerHTML = `<span class="section-head-icon">${icon}</span> ${key}`;
+      grid.appendChild(sh);
+
+      fields.forEach(({ k, l }, i) => {
+        const raw = sec[k];
+        const isActionReq = raw === 'Action Required' || raw === null || raw === undefined || raw === '';
+        const row = document.createElement('div');
+        row.className = 'note-row';
+        row.dataset.sec = key;
+        row.dataset.field = k;
+
+        // flash highlight stagger
+        setTimeout(() => row.classList.add('flash'), i * 55);
+        setTimeout(() => row.classList.remove('flash'), i * 55 + 1000);
+
+        const kEl = document.createElement('div'); kEl.className = 'note-key'; kEl.textContent = l;
+        const vEl = document.createElement('div');
+        vEl.className = 'note-val' + (isActionReq ? ' action-req' : '');
+        vEl.textContent = isActionReq ? (raw === 'Action Required' ? 'Action Required' : 'not detected') : raw;
+        vEl.contentEditable = 'false';
+        vEl.dataset.orig = raw || '';
+
+        const eBtn = document.createElement('button');
+        eBtn.className = 'edit-btn'; eBtn.title = 'Edit'; eBtn.textContent = '✎';
+        eBtn.onclick = () => toggleEdit(vEl, eBtn, row);
+        vEl.addEventListener('dblclick', () => { if (vEl.contentEditable !== 'true') toggleEdit(vEl, eBtn, row); });
+        vEl.addEventListener('blur', () => {
+          if (vEl.contentEditable === 'true') {
+            const t = vEl.textContent.trim();
+            if (!t) { vEl.textContent = vEl.dataset.orig || 'not detected'; vEl.classList.add('action-req'); }
+            else vEl.classList.remove('action-req');
+            vEl.contentEditable = 'false'; eBtn.classList.remove('on'); row.classList.remove('editing');
+          }
+        });
+
+        row.append(kEl, vEl, eBtn);
+        grid.appendChild(row);
+      });
+    });
+
+    // JSON
+    document.getElementById('rawJson').textContent = JSON.stringify(extracted, null, 2);
+    document.getElementById('jsonToggleBtn').style.display = 'block';
+
+    // Submit bar
+    didTranscribe = true;
+    document.getElementById('submitRoom').textContent = getRoom() || '—';
+    document.getElementById('submitBar').classList.add('show');
+  }
+
+  function toggleEdit(vEl, btn, row) {
+    const on = vEl.contentEditable === 'true';
+    if (on) {
+      vEl.contentEditable = 'false'; btn.classList.remove('on'); row.classList.remove('editing'); vEl.blur();
+    } else {
+      vEl.contentEditable = 'true'; vEl.classList.remove('action-req');
+      btn.classList.add('on'); row.classList.add('editing'); vEl.focus();
+      const r = document.createRange(); r.selectNodeContents(vEl); r.collapse(false);
+      const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+    }
+  }
+
+  function collectNotes() {
+    const out = {};
+    document.querySelectorAll('.note-row[data-sec]').forEach(row => {
+      const s = row.dataset.sec, f = row.dataset.field;
+      const vEl = row.querySelector('.note-val');
+      const text = vEl && !vEl.classList.contains('action-req') ? vEl.textContent.trim() : null;
+      if (!out[s]) out[s] = {};
+      out[s][f] = text;
+    });
+    return out;
+  }
+
+  function toggleJson() {
+    const el  = document.getElementById('rawJson');
+    const btn = document.getElementById('jsonToggleBtn');
+    el.classList.toggle('show');
+    btn.textContent = el.classList.contains('show') ? 'Hide raw JSON' : 'Show raw JSON';
+  }
+
+  // ── SUBMIT ────────────────────────────────────────────────────────────────
+  async function submitNotes() {
+    const room = getRoom();
+    if (!room) { toast('Room / patient ID required.', 'error'); document.getElementById('roomInput').focus(); return; }
+    if (!didTranscribe) { toast('Run a transcription first.', 'error'); return; }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = 'Submitting…';
+
+    const payload = {
+      room,
+      transcript: document.getElementById('txBox').textContent.trim(),
+      extracted: collectNotes()
+    };
+
+    try {
+      const res = await fetch(`${API}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+      toast(`Notes filed for room ${room}`, 'success');
+    } catch (e) { toast(e.message, 'error'); }
+    finally { btn.disabled = false; btn.textContent = 'Submit Notes →'; }
+  }
+</script>
+</body>
+</html>
